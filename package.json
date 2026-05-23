@@ -1,0 +1,26 @@
+{
+  "name": "hls_dl",
+  "version": "1.0.0",
+  "description": "HLS Downloader",
+  "keywords": [
+    "HLS",
+    "Downloader"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@gitee.com:wu-yuntao/hls_dl.git"
+  },
+  "license": "MIT",
+  "author": "Wu Yuntao",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
