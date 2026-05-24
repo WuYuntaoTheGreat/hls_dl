@@ -7,10 +7,11 @@ export class Downloader {
   private readonly _url: string;
   private readonly _headers: string[];
   private readonly _cookies: string | undefined;
+  private outputDir: string = '.';
   private targetFilename: string | undefined;
   private nameAndQuery: string | undefined;
 
-  constructor(private readonly _script: string, private readonly _outputDir: string) {
+  constructor(private readonly _script: string) {
     // Parse headers.
     const headerMatches = this._script.matchAll(/-H '([^']+)'/g);
     this._headers = [...headerMatches].map((m) => m[1]).filter((h) => h !== undefined);
@@ -28,7 +29,13 @@ export class Downloader {
   }
 
   clone(): Downloader {
-    return new Downloader(this._script, this._outputDir);
+    return new Downloader(this._script)
+      .setOutputDir(this.outputDir);
+  }
+
+  setOutputDir(dir: string): Downloader {
+    this.outputDir = dir;
+    return this;
   }
 
   setTargetFilename(name: string): Downloader {
@@ -67,7 +74,7 @@ export class Downloader {
   }
 
   get outputFilePath(): string {
-    return path.join(this._outputDir, this.outputFileName);
+    return path.join(this.outputDir, this.outputFileName);
   }
 
   async download(): Promise<void> {

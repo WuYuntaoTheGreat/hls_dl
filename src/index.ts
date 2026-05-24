@@ -34,7 +34,9 @@ async function main() {
   writeFileSync(SCRIPT_PATH, m3u8Script, { encoding: "utf-8" });
 
   // Download master m3u8 file
-  const masterDownloader = new Downloader(m3u8Script, CONTENT_DIR).setTargetFilename('master.m3u8');
+  const masterDownloader = new Downloader(m3u8Script)
+    .setOutputDir(WORKING_DIR)
+    .setTargetFilename('master.m3u8');
   await masterDownloader.download();
 
   // Parse master m3u8
@@ -42,10 +44,12 @@ async function main() {
   const mediaDownloader = masterDownloader.clone().setTargetFilename('media.m3u8');
 
   if (masterParser.isMaster) {
+    // Process media playlist
     const media = masterParser.preferMedia!;
     console.log("Preferred media playlist:", media);
     await mediaDownloader.setUrlNameAndQuery(media.uri).download();
 
+    // Process audio playlist if exists
     const audio = masterParser.preferAudio;
     if (audio) {
       console.log("Preferred audio playlist:", audio);
