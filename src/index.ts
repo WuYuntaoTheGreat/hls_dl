@@ -10,14 +10,6 @@ const WORKING_DIR = ".hls_dl";
 const CONTENT_DIR = path.join(WORKING_DIR, 'contents');
 const SCRIPT_PATH = path.join(WORKING_DIR, 'download.sh');
 
-function getAudioUriOrThrow(mediaGroups: any, audioId: string): string {
-  const audioUri = (Object.values(mediaGroups?.AUDIO?.[audioId] || {})[0] as any | undefined)?.uri;
-  if (!audioUri) {
-    throw new Error(`Audio URI not found for media group '${audioId}'`);
-  }
-  return audioUri;
-}
-
 async function main() {
   // Parse command-line options
   const options = parseOptions();
@@ -49,18 +41,16 @@ async function main() {
   const masterParser = new HLSParser(masterDownloader.outputFilePath, options.bandwidth);
   const mediaDownloader = masterDownloader.clone().setTargetFilename('media.m3u8');
 
-  // Process media m3u8
   if (masterParser.isMaster) {
     const media = masterParser.preferMedia!;
-    const audioId = media.attributes?.AUDIO;
-    if (audioId) {
-      const audioUri = getAudioUriOrThrow(masterParser.mediaGroups, audioId);
-      console.log('Prefered audio uri:', audioUri);
-      await masterDownloader.clone().setTargetFilename('audio.m3u8').setUrlNameAndQuery(audioUri).download();
-    }
-
     console.log("Preferred media playlist:", media);
     await mediaDownloader.setUrlNameAndQuery(media.uri).download();
+
+    const audio = masterParser.preferAudio;
+    if (audio) {
+      console.log("Preferred audio playlist:", audio);
+      await masterDownloader.clone().setTargetFilename('audio.m3u8').setUrlNameAndQuery(audio.uri).download();
+    }
   } else {
     copyFileSync(masterDownloader.outputFilePath, mediaDownloader.outputFilePath);
   }

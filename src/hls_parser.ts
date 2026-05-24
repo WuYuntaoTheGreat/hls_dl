@@ -39,10 +39,6 @@ export class HLSParser {
     return this._manifest.playlists || [];
   }
 
-  get mediaGroups(): any {
-    return this._manifest.mediaGroups || {};
-  }
-
   get isMaster(): boolean {
     return this.playlists?.[0].attributes?.BANDWIDTH !== undefined;
   }
@@ -51,4 +47,9 @@ export class HLSParser {
     return this._preferMedia;
   }
 
+  get preferAudio(): any | undefined {
+    const mediaGroups = this._manifest.mediaGroups;
+    const audioId = this.preferMedia?.attributes?.AUDIO;
+    return Object.values(mediaGroups?.AUDIO?.[audioId] || {})[0];
+  }
 }
