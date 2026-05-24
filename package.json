@@ -22,5 +22,9 @@
     "@types/node": "^25.9.1",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "axios": "^1.8.4",
+    "clipboardy": "^5.3.1"
   }
 }

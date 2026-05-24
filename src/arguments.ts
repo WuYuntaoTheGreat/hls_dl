@@ -55,13 +55,6 @@ export function parseOptions(): Options {
   let source: "clipboard" | "script" = "clipboard";
   if (values.script) {
     source = "script";
-  } else if (values.clip === false && !values.script) {
-    // If --clip is explicitly set to false and no script, keep clipboard as default
-    // parseArgs boolean default handles this, but we ensure script overrides
-  }
-
-  if (values.script) {
-    source = "script";
   }
 
   return {
