@@ -6,6 +6,7 @@ import { existsSync } from 'fs';
 export class Downloader {
   private readonly _url: string;
   private readonly _headers: string[];
+  private readonly _cookies: string | undefined;
   private targetFilename: string | undefined;
   private nameAndQuery: string | undefined;
 
@@ -13,6 +14,10 @@ export class Downloader {
     // Parse headers.
     const headerMatches = this._script.matchAll(/-H '([^']+)'/g);
     this._headers = [...headerMatches].map((m) => m[1]).filter((h) => h !== undefined);
+
+    // Parse cookies.
+    const cookieMatch = this._script.match(/-b '([^']+)'/);
+    this._cookies = cookieMatch ? cookieMatch[1] : undefined;
 
     // Parse URL.
     const urlMatch = this._script.match(/curl \$?'([^']+)'/);
@@ -37,6 +42,8 @@ export class Downloader {
   }
 
   get headers(): string[] { return this._headers; }
+
+  get cookies(): string | undefined { return this._cookies; }
 
   get downloadUrl(): string {
     const urlHostAndPath = this._url.match(/^.*\//)?.[0];
@@ -82,6 +89,9 @@ export class Downloader {
       if (colonIndex > 0) {
         headers[h.slice(0, colonIndex).trim()] = h.slice(colonIndex + 1).trim();
       }
+    }
+    if (this._cookies) {
+      headers['Cookie'] = this._cookies;
     }
 
     const proxyUrl = url.startsWith('https:')
