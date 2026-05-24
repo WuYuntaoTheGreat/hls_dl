@@ -24,7 +24,9 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@types/m3u8-parser": "^7.2.6",
     "axios": "^1.8.4",
-    "clipboardy": "^5.3.1"
+    "clipboardy": "^5.3.1",
+    "m3u8-parser": "^7.2.0"
   }
 }

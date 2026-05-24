@@ -1,27 +1,21 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import axios, { type AxiosProxyConfig } from 'axios';
-
-export const WORKING_DIR = ".hls_dl";
-export const CONTENT_DIR = path.join(WORKING_DIR, 'contents');
+import { existsSync } from 'fs';
 
 export class Downloader {
-  private readonly _script: string;
   private readonly _url: string;
   private readonly _headers: string[];
-  targetFilename: string | undefined;
-  filename: string | undefined;
+  private targetFilename: string | undefined;
+  private nameAndQuery: string | undefined;
 
-  constructor(script: string) {
-    // Save the original script for cloning.
-    this._script = script;
-
+  constructor(private readonly _script: string, private readonly _outputDir: string) {
     // Parse headers.
-    const headerMatches = script.matchAll(/-H '([^']+)'/g);
+    const headerMatches = this._script.matchAll(/-H '([^']+)'/g);
     this._headers = [...headerMatches].map((m) => m[1]).filter((h) => h !== undefined);
 
     // Parse URL.
-    const urlMatch = script.match(/curl \$?'([^']+)'/);
+    const urlMatch = this._script.match(/curl \$?'([^']+)'/);
     if (!urlMatch || urlMatch.length < 2) {
       throw new Error('Invalid cURL script: URL not found');
     }
@@ -29,36 +23,44 @@ export class Downloader {
   }
 
   clone(): Downloader {
-    return new Downloader(this._script);
+    return new Downloader(this._script, this._outputDir);
+  }
+
+  setTargetFilename(name: string): Downloader {
+    this.targetFilename = name;
+    return this;
+  }
+
+  setUrlNameAndQuery(nameAndQuery: string): Downloader {
+    this.nameAndQuery = nameAndQuery;
+    return this;
   }
 
   get headers(): string[] { return this._headers; }
 
-  get urlPath(): string {
-    const urlObj = new URL(this._url);
-    const pathname = urlObj.pathname;
-    const lastSlash = pathname.lastIndexOf('/');
-    return lastSlash >= 0 ? pathname.slice(0, lastSlash + 1) : '/';
-  }
-
-  get urlFilename(): string {
-    const urlObj = new URL(this.downloadUrl);
-    const pathname = urlObj.pathname;
-    const lastSlash = pathname.lastIndexOf('/');
-    return lastSlash >= 0 ? pathname.slice(lastSlash + 1) : pathname;
-  }
-
   get downloadUrl(): string {
-    if (this.filename !== undefined) {
-      return this.urlPath + this.filename;
+    const urlHostAndPath = this._url.match(/^.*\//)?.[0];
+    if (!urlHostAndPath) {
+      throw new Error('Cannot determine URL host and path from script');
+    }
+    if (this.nameAndQuery !== undefined) {
+      return urlHostAndPath + this.nameAndQuery;
     } else {
       return this._url;
     }
   }
 
+  get outputFileName(): string {
+    const targetFilename = this.targetFilename || this.nameAndQuery || this._url;
+    const outputFilename =targetFilename.match(/[^/?]*(?=\?|$)/)?.[0];
+    if (!outputFilename) {
+      throw new Error('Cannot determine output filename from URL: ' + targetFilename);
+    }
+    return outputFilename;
+  }
+
   get outputFilePath(): string {
-    const targetFilename = this.targetFilename || this.filename || this.urlFilename;
-    return path.join(CONTENT_DIR, targetFilename);
+    return path.join(this._outputDir, this.outputFileName);
   }
 
   async download(): Promise<void> {
@@ -67,6 +69,10 @@ export class Downloader {
 
     console.log("Download URL:", url);
     console.log("Output path:", outputPath);
+    if (existsSync(outputPath)) {
+      console.log("File already exists, skipping download");
+      return;
+    }
 
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 

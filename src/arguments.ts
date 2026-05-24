@@ -46,10 +46,6 @@ export function parseOptions(): Options {
     throw new Error("Thread count must be a positive integer");
   }
 
-  if (values.script) {
-    values.clear = true;
-  }
-
   return {
     clear: values.clear as boolean,
     scriptFile: values.script as string | undefined,
