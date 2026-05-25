@@ -12,7 +12,7 @@ const CONTENT_DIR = path.join(WORKING_DIR, 'contents');
 const SCRIPT_PATH = path.join(WORKING_DIR, 'download.sh');
 
 async function processMedia(downloader: Downloader, threads: number): Promise<void> {
-  const mediaParser = new HLSParser(downloader.outputFilePath);
+  const mediaParser = HLSParser.fromPath(downloader.outputFilePath);
   const keyUris = mediaParser.segments.map((s) => s.key?.uri as string).filter(Boolean).uniq();
   const mapUris = mediaParser.segments.map((s) => s.map?.uri as string).filter(Boolean).uniq();
   const segUris = mediaParser.segments.map((s) => s.uri as string).filter(Boolean);
@@ -20,10 +20,21 @@ async function processMedia(downloader: Downloader, threads: number): Promise<vo
   console.log("Media segment keys:", keyUris);
   console.log("Media segment maps:", mapUris);
   console.log("Media segment URIs:", segUris);
+
+  const mediaDownloader = downloader.clone().setOutputDir(CONTENT_DIR).setTargetFilename(undefined);
+  for (const keyUri of keyUris) {
+    await mediaDownloader.setUrlNameAndQuery(keyUri).download();
+  }
+  for (const mapUri of mapUris) {
+    await mediaDownloader.setUrlNameAndQuery(mapUri).download();
+  }
+  for (const segUri of segUris) {
+    await mediaDownloader.setUrlNameAndQuery(segUri).download();
+  }
 }
 
 async function processMaster(downloader: Downloader, options: Options): Promise<void> {
-  const masterParser = new HLSParser(downloader.outputFilePath, options.bandwidth);
+  const masterParser = HLSParser.fromPath(downloader.outputFilePath).setPreferBandwidth(options.bandwidth);
 
   if (masterParser.isMaster) {
     // Process media playlist

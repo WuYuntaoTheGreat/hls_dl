@@ -1,11 +1,11 @@
-import { readFileSync } from "node:fs";
-import m3u8Parser from "m3u8-parser";
+import { readFileSync, writeFileSync } from "node:fs";
+import m3u8Parser, { type Manifest, type PlaylistItem, type Segment } from "m3u8-parser";
 
 export class HLSParser {
-  private readonly _manifest: any;
+  private readonly _manifest: Manifest;
   private _preferBandwidth: "l" | "h" = "h";
 
-  private constructor(manifest: any) {
+  private constructor(manifest: Manifest) {
     this._manifest = manifest;
   }
 
@@ -21,7 +21,7 @@ export class HLSParser {
     return new HLSParser(parser.manifest);
   }
 
-  static fromManifest(manifest: any): HLSParser {
+  static fromManifest(manifest: Manifest): HLSParser {
     return new HLSParser(manifest);
   }
 
@@ -30,15 +30,15 @@ export class HLSParser {
     return this;
   }
 
-  cloneManifest(): any {
+  cloneManifest(): Manifest {
     return JSON.parse(JSON.stringify(this._manifest));
   }
 
-  get playlists(): any[] {
+  get playlists(): PlaylistItem[] {
     return this._manifest.playlists || [];
   }
 
-  get segments(): any[] {
+  get segments(): Segment[] {
     return this._manifest.segments || [];
   }
 
@@ -46,8 +46,8 @@ export class HLSParser {
     return this.playlists.length > 0;
   }
 
-  get preferMedia(): any | undefined {
-    return (this._manifest.playlists || []).reduce((prev: any | undefined, item: any) => {
+  get preferMedia(): PlaylistItem | undefined {
+    return (this._manifest.playlists || []).reduce((prev: PlaylistItem | undefined, item: PlaylistItem) => {
       const itemBw = item.attributes?.BANDWIDTH; 
       const prevBw = prev?.attributes?.BANDWIDTH;
       if (itemBw === undefined) {
@@ -65,8 +65,10 @@ export class HLSParser {
   }
 
   get preferAudio(): any | undefined {
-    const mediaGroups = this._manifest.mediaGroups;
     const audioId = this.preferMedia?.attributes?.AUDIO;
-    return Object.values(mediaGroups?.AUDIO?.[audioId] || {})[0];
+    return this._manifest.mediaGroups?.getItem('AUDIO')?.getItem(audioId)?.getFirstItem();
+  }
+
+  writeToFile(path: string): void {
   }
 }

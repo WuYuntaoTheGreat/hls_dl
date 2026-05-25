@@ -40,7 +40,7 @@ export class Downloader {
     return this;
   }
 
-  setTargetFilename(name: string): Downloader {
+  setTargetFilename(name: string | undefined): Downloader {
     this.targetFilename = name;
     return this;
   }

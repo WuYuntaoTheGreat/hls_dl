@@ -2,8 +2,30 @@ declare global {
   interface Array<T> {
     uniq(): T[];
   }
+
+  interface Object {
+    getItem<T>(key: PropertyKey | undefined): T | undefined;
+    getFirstItem<T>(): T | undefined;
+  }
 }
 
 Array.prototype.uniq = function<T>(): T[] {
   return [...new Set(this)];
 }
+
+Object.prototype.getItem = function<T>(key: PropertyKey | undefined): T | undefined {
+  if (key === undefined) {
+    return undefined;
+  }
+  return (this as Record<string, T>)[key as string];
+}
+
+Object.prototype.getFirstItem = function<T>(): T | undefined {
+  for (const key in this) {
+    if (Object.prototype.hasOwnProperty.call(this, key)) {
+      return (this as Record<string, T>)[key];
+    }
+  }
+  return undefined;
+}
+
