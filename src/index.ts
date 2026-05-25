@@ -18,16 +18,31 @@ async function processMedia(downloader: Downloader, threads: number): Promise<vo
   const mapUris = mediaParser.segments.map((s) => s.map?.uri as string).filter(Boolean).uniq();
   const segUris = mediaParser.segments.map((s) => s.uri as string).filter(Boolean);
 
-  // console.log("Media segment keys:", keyUris);
-  // console.log("Media segment maps:", mapUris);
-  // console.log("Media segment URIs:", segUris);
-
   console.log('    Downloading media segments...');
   const mediaDownloader = downloader.clone().setOutputDir(CONTENT_DIR).setTargetFilename(undefined);
 
-  for (const uri of [...keyUris, ...mapUris, ...segUris]) {
-    await mediaDownloader.clone().setUrlNameAndQuery(uri).download();
+  const uris = [...keyUris, ...mapUris, ...segUris];
+  let error: Error | null = null;
+  const workers: Promise<void>[] = [];
+
+  for (let i = 0; i < threads; i++) {
+    workers.push(
+      (async () => {
+        while (!error) {
+          const uri = uris.shift();
+          if (!uri) break;
+          try {
+            await mediaDownloader.clone().setUrlNameAndQuery(uri).download();
+          } catch (e) {
+            error = e as Error;
+          }
+        }
+      })()
+    );
   }
+
+  await Promise.all(workers);
+  if (error) throw error;
 
   console.log('    Rewriting m3u8...');
   await new HLSWriter(mediaParser, path.join(CONTENT_DIR, downloader.targetFilename!)).write();
