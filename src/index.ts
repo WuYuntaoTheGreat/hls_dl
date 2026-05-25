@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import clipboard from "clipboardy";
 import { Downloader } from "./downloader.js";
 import { HLSParser } from "./hls_parser.js";
+import { HLSWriter } from "./hls_writer.js";
 
 const WORKING_DIR = ".hls_dl";
 const CONTENT_DIR = path.join(WORKING_DIR, 'contents');
@@ -17,10 +18,11 @@ async function processMedia(downloader: Downloader, threads: number): Promise<vo
   const mapUris = mediaParser.segments.map((s) => s.map?.uri as string).filter(Boolean).uniq();
   const segUris = mediaParser.segments.map((s) => s.uri as string).filter(Boolean);
 
-  console.log("Media segment keys:", keyUris);
-  console.log("Media segment maps:", mapUris);
-  console.log("Media segment URIs:", segUris);
+  // console.log("Media segment keys:", keyUris);
+  // console.log("Media segment maps:", mapUris);
+  // console.log("Media segment URIs:", segUris);
 
+  console.log('    Downloading media segments...');
   const mediaDownloader = downloader.clone().setOutputDir(CONTENT_DIR).setTargetFilename(undefined);
   for (const keyUri of keyUris) {
     await mediaDownloader.setUrlNameAndQuery(keyUri).download();
@@ -31,30 +33,37 @@ async function processMedia(downloader: Downloader, threads: number): Promise<vo
   for (const segUri of segUris) {
     await mediaDownloader.setUrlNameAndQuery(segUri).download();
   }
+
+  console.log('    Rewriting m3u8...');
+  await new HLSWriter(mediaParser, path.join(CONTENT_DIR, downloader.targetFilename!)).write();
 }
 
 async function processMaster(downloader: Downloader, options: Options): Promise<void> {
+  console.log('Processing master playlist...');
   const masterParser = HLSParser.fromPath(downloader.outputFilePath).setPreferBandwidth(options.bandwidth);
 
-  if (masterParser.isMaster) {
+  if (masterParser.playlists.length > 0) {
     // Process media playlist
+    console.log('  Processing media playlist...');
     const media = masterParser.preferMedia!;
-    console.log("Preferred media playlist:", media);
-    const mediaDownloader = downloader.clone().setTargetFilename('media.m3u8').setUrlNameAndQuery(media.uri);
+    const mediaDownloader = downloader.clone().setTargetFilename('video.m3u8').setUrlNameAndQuery(media.uri);
     await mediaDownloader.download();
     await processMedia(mediaDownloader, options.threads);
 
     // Process audio playlist if exists
     const audio = masterParser.preferAudio;
     if (audio) {
-      console.log("Preferred audio playlist:", audio);
+      console.log('  Processing audio playlist...');
       const audioDownloader = downloader.clone().setTargetFilename('audio.m3u8').setUrlNameAndQuery(audio.uri);
       await audioDownloader.download();
       await processMedia(audioDownloader, options.threads);
     }
+    console.log('  Rewriting master m3u8...');
+    await new HLSWriter(masterParser, path.join(CONTENT_DIR, 'index.m3u8')).write();
   } else {
     // Process media playlist
-    const mediaDownloader = downloader.clone().setTargetFilename('media.m3u8');
+    console.log('Processing media playlist...');
+    const mediaDownloader = downloader.clone().setTargetFilename('video.m3u8');
     copyFileSync(downloader.outputFilePath, mediaDownloader.outputFilePath);
     await processMedia(mediaDownloader, options.threads);
   }
@@ -70,16 +79,26 @@ async function main() {
     process.exit(0);
   }
 
-  if (!options.scriptFile) {
-    options.scriptFile = SCRIPT_PATH;
+  // Read m3u8 script from clipboard or file
+  const m3u8Script: string = await (async () => {
+    if (options.scriptFile) {
+      console.log(`Reading m3u8 script from command line: ${options.scriptFile} ...`);
+      return await readFile(options.scriptFile, "utf-8");
+    } else if (existsSync(SCRIPT_PATH)) {
+      console.log(`Reading m3u8 script from working directory: ${WORKING_DIR}  ...`);
+      return await readFile(SCRIPT_PATH, "utf-8");
+    } else {
+      console.log("Reading m3u8 script from clipboard ...");
+      return await clipboard.read();
+    }
+  })();
+
+  if (!m3u8Script) {
+    throw new Error("No m3u8 script provided. Please provide a script via command line, clipboard.");
   }
 
-  // Read m3u8 script from clipboard or file
-  const m3u8Script = existsSync(options.scriptFile)
-    ? await readFile(options.scriptFile!, "utf-8")
-    : await clipboard.read();
-
   // Create working directory and save m3u8 script to working directory
+  console.log('Saving m3u8 script to working directory...');
   mkdirSync(WORKING_DIR, { recursive: true });
   writeFileSync(SCRIPT_PATH, m3u8Script, { encoding: "utf-8" });
 

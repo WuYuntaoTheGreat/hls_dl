@@ -18,6 +18,7 @@ export class HLSParser {
     const parser = new m3u8Parser.Parser();
     parser.push(m3u8Content);
     parser.end();
+    // console.log('Parsed m3u8 content, manifest:', JSON.stringify(parser.manifest, null, 2));
     return new HLSParser(parser.manifest);
   }
 
@@ -40,10 +41,6 @@ export class HLSParser {
 
   get segments(): Segment[] {
     return this._manifest.segments || [];
-  }
-
-  get isMaster(): boolean {
-    return this.playlists.length > 0;
   }
 
   get preferMedia(): PlaylistItem | undefined {

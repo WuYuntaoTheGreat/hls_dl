@@ -10,7 +10,7 @@ export class Downloader {
   private readonly _headers: string[];
   private readonly _cookies: string | undefined;
   private outputDir: string = '.';
-  private targetFilename: string | undefined;
+  private _targetFilename: string | undefined;
   private nameAndQuery: string | undefined;
 
   constructor(private readonly _script: string) {
@@ -41,7 +41,7 @@ export class Downloader {
   }
 
   setTargetFilename(name: string | undefined): Downloader {
-    this.targetFilename = name;
+    this._targetFilename = name;
     return this;
   }
 
@@ -49,6 +49,8 @@ export class Downloader {
     this.nameAndQuery = nameAndQuery;
     return this;
   }
+
+  get targetFilename(): string | undefined { return this._targetFilename; }
 
   get headers(): string[] { return this._headers; }
 
@@ -67,7 +69,7 @@ export class Downloader {
   }
 
   get outputFileName(): string {
-    const targetFilename = this.targetFilename || this.nameAndQuery || this._url;
+    const targetFilename = this._targetFilename || this.nameAndQuery || this._url;
     const outputFilename =targetFilename.match(/[^/?]*(?=\?|$)/)?.[0];
     if (!outputFilename) {
       throw new Error('Cannot determine output filename from URL: ' + targetFilename);
@@ -106,12 +108,12 @@ export class Downloader {
     const outputPath = this.outputFilePath;
 
     // Check existence before downloading
-    console.log("Download URL:", url);
-    console.log("Output path:", outputPath);
     if (existsSync(outputPath)) {
-      console.log("File already exists, skipping download");
+      // console.log(`File '${outputPath}' already exists, skipping download`);
       return;
     }
+    console.log("Download URL:", url);
+    console.log("Output path:", outputPath);
 
     // Create output directory if not exists
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
