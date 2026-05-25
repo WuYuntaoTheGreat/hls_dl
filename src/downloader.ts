@@ -3,6 +3,8 @@ import * as path from 'path';
 import axios, { type AxiosProxyConfig } from 'axios';
 import { existsSync } from 'fs';
 
+const IGNORED_HEADERS = ['if-none-match', 'if-modified-since'];
+
 export class Downloader {
   private readonly _url: string;
   private readonly _headers: string[];
@@ -77,10 +79,33 @@ export class Downloader {
     return path.join(this.outputDir, this.outputFileName);
   }
 
+  getProxyConfig(): AxiosProxyConfig | false {
+    const proxyUrl = this.downloadUrl.startsWith('https:')
+      ? (process.env.HTTPS_PROXY || process.env.https_proxy)
+      : (process.env.HTTP_PROXY || process.env.http_proxy);
+
+    if (!proxyUrl) {
+      return false;
+    }
+
+    const proxyObj = new URL(proxyUrl);
+    const auth = proxyObj.username
+        ? { username: proxyObj.username, password: proxyObj.password }
+        : undefined;
+
+    return {
+      protocol: proxyObj.protocol,
+      host: proxyObj.hostname,
+      port: parseInt(proxyObj.port, 10),
+      ...(auth ? {auth} : {}),
+    };
+  }
+
   async download(): Promise<void> {
     const url = this.downloadUrl;
     const outputPath = this.outputFilePath;
 
+    // Check existence before downloading
     console.log("Download URL:", url);
     console.log("Output path:", outputPath);
     if (existsSync(outputPath)) {
@@ -88,43 +113,26 @@ export class Downloader {
       return;
     }
 
+    // Create output directory if not exists
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
-    const headers: Record<string, string> = {};
-    for (const h of this._headers) {
-      const colonIndex = h.indexOf(':');
-      if (colonIndex > 0) {
-        const name = h.slice(0, colonIndex).trim();
-        const value = h.slice(colonIndex + 1).trim();
-        if (name.toLowerCase() === 'if-none-match' || name.toLowerCase() === 'if-modified-since') {
-          continue;
-        }
-        headers[name] = value;
-      }
-    }
+    // Prepare headers, excluding ignored ones and adding cookies if present
+    const headers = Object.fromEntries(
+      this._headers
+        .map((h) => h.split(':').map((s) => s.trim()) as [string, string])
+        .filter((kv) => kv[0] && kv[1])
+        .filter((kv) => !IGNORED_HEADERS.includes(kv[0].toLowerCase()))
+    );
+
+    // Add cookies to headers if present
     if (this._cookies) {
       headers['Cookie'] = this._cookies;
     }
 
-    const proxyUrl = url.startsWith('https:')
-      ? (process.env.HTTPS_PROXY || process.env.https_proxy)
-      : (process.env.HTTP_PROXY || process.env.http_proxy);
+    // Get proxy configuration from environment variables
+    const proxy = this.getProxyConfig();
 
-    let proxy: AxiosProxyConfig | false = false;
-    if (proxyUrl) {
-      const proxyObj = new URL(proxyUrl);
-      const auth = proxyObj.username
-          ? { username: proxyObj.username, password: proxyObj.password }
-          : undefined;
-
-      proxy = {
-        protocol: proxyObj.protocol,
-        host: proxyObj.hostname,
-        port: parseInt(proxyObj.port, 10),
-        ...(auth ? {auth} : {}),
-      };
-    }
-
+    // Perform the HTTP GET request to download the file
     const response = await axios({
       method: 'get',
       url,
@@ -133,6 +141,7 @@ export class Downloader {
       responseType: 'arraybuffer',
     });
 
+    // Save the downloaded content to the output file
     fs.writeFileSync(outputPath, Buffer.from(response.data));
   }
 }

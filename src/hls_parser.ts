@@ -7,30 +7,15 @@ export class HLSParser {
 
   private readonly _preferMedia: any | undefined;
 
-  constructor(m3u8Path: string, preferBandwidth: "l" | "h" = "h") {
+  constructor(m3u8Path: string, private readonly preferBandwidth: "l" | "h" = "h") {
     this._m3u8Content = readFileSync(m3u8Path, "utf-8");
     const parser = new m3u8Parser.Parser();
     parser.push(this._m3u8Content);
     parser.end();
     this._manifest = parser.manifest;
 
-    console.log("Parsed m3u8 manifest:", JSON.stringify(this._manifest, null, 2));
+    // console.log("Parsed m3u8 manifest:", JSON.stringify(this._manifest, null, 2));
 
-    const comparator = { 'l': (a: number, b: number) => a - b, 'h': (a: number, b: number) => b - a }[preferBandwidth];
-
-    this._preferMedia = (this._manifest.playlists || []).reduce((prev: any | undefined, item: any) => {
-      const itemBw = item.attributes?.BANDWIDTH; 
-      const prevBw = prev?.attributes?.BANDWIDTH;
-      if (itemBw === undefined) {
-        return prev;
-      } else if (prevBw === undefined) {
-        return item;
-      } else if (prevBw === undefined || comparator(itemBw, prevBw) < 0) {
-        return item;
-      } else {
-        return prev;
-      } 
-    }, undefined)
   }
 
   get playlists(): any[] {
@@ -46,7 +31,21 @@ export class HLSParser {
   }
 
   get preferMedia(): any | undefined {
-    return this._preferMedia;
+    return (this._manifest.playlists || []).reduce((prev: any | undefined, item: any) => {
+      const itemBw = item.attributes?.BANDWIDTH; 
+      const prevBw = prev?.attributes?.BANDWIDTH;
+      if (itemBw === undefined) {
+        return prev;
+      } else if (prevBw === undefined) {
+        return item;
+      } else if (this.preferBandwidth === "l" && itemBw <= prevBw){
+        return item;
+      } else if (this.preferBandwidth === "h" && itemBw >= prevBw) {
+        return item;
+      } else {
+        return prev;
+      } 
+    }, undefined)
   }
 
   get preferAudio(): any | undefined {

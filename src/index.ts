@@ -15,9 +15,11 @@ async function processMedia(downloader: Downloader, threads: number): Promise<vo
   const mediaParser = new HLSParser(downloader.outputFilePath);
   const keyUris = mediaParser.segments.map((s) => s.key?.uri as string).filter(Boolean).uniq();
   const mapUris = mediaParser.segments.map((s) => s.map?.uri as string).filter(Boolean).uniq();
+  const segUris = mediaParser.segments.map((s) => s.uri as string).filter(Boolean);
 
   console.log("Media segment keys:", keyUris);
   console.log("Media segment maps:", mapUris);
+  console.log("Media segment URIs:", segUris);
 }
 
 async function processMaster(downloader: Downloader, options: Options): Promise<void> {
