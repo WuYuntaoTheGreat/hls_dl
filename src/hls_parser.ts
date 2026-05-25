@@ -2,20 +2,36 @@ import { readFileSync } from "node:fs";
 import m3u8Parser from "m3u8-parser";
 
 export class HLSParser {
-  private readonly _m3u8Content: string;
   private readonly _manifest: any;
+  private _preferBandwidth: "l" | "h" = "h";
 
-  private readonly _preferMedia: any | undefined;
+  private constructor(manifest: any) {
+    this._manifest = manifest;
+  }
 
-  constructor(m3u8Path: string, private readonly preferBandwidth: "l" | "h" = "h") {
-    this._m3u8Content = readFileSync(m3u8Path, "utf-8");
+  static fromPath(m3u8Path: string): HLSParser {
+    const m3u8Content = readFileSync(m3u8Path, "utf-8");
+    return HLSParser.fromContent(m3u8Content);
+  }
+
+  static fromContent(m3u8Content: string): HLSParser {
     const parser = new m3u8Parser.Parser();
-    parser.push(this._m3u8Content);
+    parser.push(m3u8Content);
     parser.end();
-    this._manifest = parser.manifest;
+    return new HLSParser(parser.manifest);
+  }
 
-    // console.log("Parsed m3u8 manifest:", JSON.stringify(this._manifest, null, 2));
+  static fromManifest(manifest: any): HLSParser {
+    return new HLSParser(manifest);
+  }
 
+  setPreferBandwidth(bandwidth: "l" | "h"): HLSParser {
+    this._preferBandwidth = bandwidth;
+    return this;
+  }
+
+  cloneManifest(): any {
+    return JSON.parse(JSON.stringify(this._manifest));
   }
 
   get playlists(): any[] {
@@ -38,9 +54,9 @@ export class HLSParser {
         return prev;
       } else if (prevBw === undefined) {
         return item;
-      } else if (this.preferBandwidth === "l" && itemBw <= prevBw){
+      } else if (this._preferBandwidth === "l" && itemBw <= prevBw){
         return item;
-      } else if (this.preferBandwidth === "h" && itemBw >= prevBw) {
+      } else if (this._preferBandwidth === "h" && itemBw >= prevBw) {
         return item;
       } else {
         return prev;
