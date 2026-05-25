@@ -13,7 +13,11 @@
   "license": "MIT",
   "author": "Wu Yuntao",
   "type": "module",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "bin": {
+    "hls_dl": "bin/hls_dl",
+    "hls_dl-merge": "bin/hls_dl-merge"
+  },
   "scripts": {
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
