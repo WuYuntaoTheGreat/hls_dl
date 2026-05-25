@@ -29,3 +29,12 @@ Object.prototype.getFirstItem = function<T>(): T | undefined {
   return undefined;
 }
 
+export function trimOutputFilename(targetFilename: string | undefined): string | undefined {
+  if (targetFilename === undefined) {
+    return undefined;
+  }
+  const outputFilename = targetFilename.match(/[^/?]*(?=\?|$)/)?.[0];
+  return outputFilename;
+}
+
+

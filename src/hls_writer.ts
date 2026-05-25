@@ -1,7 +1,7 @@
 import type { Manifest } from "m3u8-parser";
 import { HLSParser } from "./hls_parser.js";
 import { writeFileSync } from "node:fs";
-
+import { trimOutputFilename } from "./utils.js";
 const VIDEO_M3U8 = "video.m3u8";
 const AUDIO_M3U8 = "audio.m3u8";
 
@@ -36,7 +36,7 @@ function rawAttr(v: any, toUpper = false): string {
   return ret.join(",");
 }
 
-const lines_push = (lines: string[], fn: (x: any) => string, value: any) => {
+function linesPush(lines: string[], fn: (x: any) => string, value: any): void {
   if (value === undefined) {
     return;
   }
@@ -47,7 +47,7 @@ const lines_push = (lines: string[], fn: (x: any) => string, value: any) => {
   lines.push(fn(value));
 }
 
-const warnUnimp = (tag: string, value: any) => {
+function warnUnimp(tag: string, value: any): void {
   if (value === undefined) {
     return;
   }
@@ -114,15 +114,15 @@ export class HLSWriter {
         lastMap = segment.map;
       }
 
-      lines_push(lines, (v) => `#EXT-X-BYTERANGE:${rawAttr(v)}`,              segment.byterange);
-      lines_push(lines, (v) => `#EXT-X-PROGRAM-DATE-TIME:${v.toISOString()}`, segment.dateTimeObject);
-      lines_push(lines, (v) => `#EXT-X-CUE-OUT:${v}`,                         segment.cueOut);
-      lines_push(lines, (v) => `#EXT-X-CUE-OUT-CONT:${v}`,                    segment.cueOutCont);
-      lines_push(lines, (v) => `#EXT-X-CUE-IN`,                               segment.cueIn);
-      lines_push(lines, (v) => `#EXT-X-DISCONTINUITY`,                        segment.discontinuity ? true : undefined);
+      linesPush(lines, (v) => `#EXT-X-BYTERANGE:${rawAttr(v)}`,              segment.byterange);
+      linesPush(lines, (v) => `#EXT-X-PROGRAM-DATE-TIME:${v.toISOString()}`, segment.dateTimeObject);
+      linesPush(lines, (v) => `#EXT-X-CUE-OUT:${v}`,                         segment.cueOut);
+      linesPush(lines, (v) => `#EXT-X-CUE-OUT-CONT:${v}`,                    segment.cueOutCont);
+      linesPush(lines, (v) => `#EXT-X-CUE-IN`,                               segment.cueIn);
+      linesPush(lines, (v) => `#EXT-X-DISCONTINUITY`,                        segment.discontinuity ? true : undefined);
 
       lines.push(`#EXTINF:${segment.duration},${segment.title || ''}`);
-      lines.push(segment.uri);
+      lines.push(trimOutputFilename(segment.uri)!);
 
       warnUnimp("#EXT-X-PART", segment.parts);
       warnUnimp("#EXT-X-PRELOAD-HINT", segment.preloadHints);
@@ -135,24 +135,25 @@ export class HLSWriter {
   createContent(lines: string[]) {
     lines.push("#EXTM3U");
     lines.push(`#EXT-X-VERSION:${this.manifest.version || 3}`);
-    lines_push(lines, (v) => `#EXT-X-MEDIA-SEQUENCE:${v}`,                  this.manifest.mediaSequence);
-    lines_push(lines, (v) => `#EXT-X-TARGETDURATION:${Math.ceil(v)}`,       this.manifest.targetDuration);
-    lines_push(lines, (v) => `#EXT-X-PLAYLIST-TYPE:${v}`,                   this.manifest.playlistType);
-    lines_push(lines, (v) => `#EXT-X-ALLOW-CACHE:${v ? 'YES' : 'NO'}`,      this.manifest.allowCache);
-    lines_push(lines, (v) => `#EXT-X-DISCONTIUTY-SEQUENCE:${v}`,            this.manifest.discontinuitySequence);
-    lines_push(lines, (v) => `#EXT-X-DATERANGE:${rawAttrArray(v)}`,         this.manifest.dateRanges);
-    lines_push(lines, (v) => `#EXT-X-START:${rawAttr(v)}`,                  this.manifest.start);
-    lines_push(lines, (v) => `#EXT-X-PROGRAM-DATE-TIME:${v}`,               this.manifest.dateTimeString);
-    lines_push(lines, (v) => `#EXT-X-SKIP:${rawAttr(v)}`,                   this.manifest.skip);
-    lines_push(lines, (v) => `#EXT-X-SERVER-CONTROL:${rawAttr(v)}`,         this.manifest.serverControl);
-    lines_push(lines, (v) => `#EXT-X-RENDITION-REPORTS:${rawAttrArray(v)}`, this.manifest.renditionReports);
-    lines_push(lines, (v) => `#EXT-X-PART-INF:${rawAttrArray(v)}`,          this.manifest.partInf);
-    lines_push(lines, (v) => `#EXT-X-PART-TARGET-DURATION:${v}`,            this.manifest.partTargetDuration);
-    lines_push(lines, (_) => `#EXT-X-INDEPENDENT-SEGMENTS`,                 this.manifest.independentSegments ? true : undefined);
+    linesPush(lines, (v) => `#EXT-X-MEDIA-SEQUENCE:${v}`,                  this.manifest.mediaSequence);
+    linesPush(lines, (v) => `#EXT-X-TARGETDURATION:${Math.ceil(v)}`,       this.manifest.targetDuration);
+    linesPush(lines, (v) => `#EXT-X-PLAYLIST-TYPE:${v}`,                   this.manifest.playlistType);
+    linesPush(lines, (v) => `#EXT-X-ALLOW-CACHE:${v ? 'YES' : 'NO'}`,      this.manifest.allowCache);
+    linesPush(lines, (v) => `#EXT-X-DISCONTIUTY-SEQUENCE:${v}`,            this.manifest.discontinuitySequence);
+    linesPush(lines, (v) => `#EXT-X-DATERANGE:${rawAttrArray(v)}`,         this.manifest.dateRanges);
+    linesPush(lines, (v) => `#EXT-X-START:${rawAttr(v)}`,                  this.manifest.start);
+    linesPush(lines, (v) => `#EXT-X-PROGRAM-DATE-TIME:${v}`,               this.manifest.dateTimeString);
+    linesPush(lines, (v) => `#EXT-X-SKIP:${rawAttr(v)}`,                   this.manifest.skip);
+    linesPush(lines, (v) => `#EXT-X-SERVER-CONTROL:${rawAttr(v)}`,         this.manifest.serverControl);
+    linesPush(lines, (v) => `#EXT-X-RENDITION-REPORTS:${rawAttrArray(v)}`, this.manifest.renditionReports);
+    linesPush(lines, (v) => `#EXT-X-PART-INF:${rawAttrArray(v)}`,          this.manifest.partInf);
+    linesPush(lines, (v) => `#EXT-X-PART-TARGET-DURATION:${v}`,            this.manifest.partTargetDuration);
+    linesPush(lines, (_) => `#EXT-X-INDEPENDENT-SEGMENTS`,                 this.manifest.independentSegments ? true : undefined);
     this.createPlaylists(lines);
     this.createMediaGroups(lines);
+
     this.createSegments(lines);
-    lines_push(lines, (_) => `#EXT-X-ENDLIST`,                              this.manifest.endList ? true : undefined);
+    linesPush(lines, (_) => `#EXT-X-ENDLIST`,                              this.manifest.endList ? true : undefined);
 
     warnUnimp("#EXT-X-CONTENT-PROTECTION",  this.manifest.contentProtection);
     warnUnimp("#EXT-X-DEFINITIONS",         this.manifest.definitions);

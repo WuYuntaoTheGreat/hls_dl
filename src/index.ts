@@ -24,14 +24,9 @@ async function processMedia(downloader: Downloader, threads: number): Promise<vo
 
   console.log('    Downloading media segments...');
   const mediaDownloader = downloader.clone().setOutputDir(CONTENT_DIR).setTargetFilename(undefined);
-  for (const keyUri of keyUris) {
-    await mediaDownloader.setUrlNameAndQuery(keyUri).download();
-  }
-  for (const mapUri of mapUris) {
-    await mediaDownloader.setUrlNameAndQuery(mapUri).download();
-  }
-  for (const segUri of segUris) {
-    await mediaDownloader.setUrlNameAndQuery(segUri).download();
+
+  for (const uri of [...keyUris, ...mapUris, ...segUris]) {
+    await mediaDownloader.clone().setUrlNameAndQuery(uri).download();
   }
 
   console.log('    Rewriting m3u8...');

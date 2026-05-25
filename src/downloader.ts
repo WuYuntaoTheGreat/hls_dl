@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import axios, { type AxiosProxyConfig } from 'axios';
 import { existsSync } from 'fs';
+import { trimOutputFilename } from './utils.js';
 
 const IGNORED_HEADERS = ['if-none-match', 'if-modified-since'];
 
@@ -70,8 +71,8 @@ export class Downloader {
 
   get outputFileName(): string {
     const targetFilename = this._targetFilename || this.nameAndQuery || this._url;
-    const outputFilename =targetFilename.match(/[^/?]*(?=\?|$)/)?.[0];
-    if (!outputFilename) {
+    const outputFilename = trimOutputFilename(targetFilename);
+    if (outputFilename === undefined) {
       throw new Error('Cannot determine output filename from URL: ' + targetFilename);
     }
     return outputFilename;
