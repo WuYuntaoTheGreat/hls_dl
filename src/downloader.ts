@@ -94,7 +94,12 @@ export class Downloader {
     for (const h of this._headers) {
       const colonIndex = h.indexOf(':');
       if (colonIndex > 0) {
-        headers[h.slice(0, colonIndex).trim()] = h.slice(colonIndex + 1).trim();
+        const name = h.slice(0, colonIndex).trim();
+        const value = h.slice(colonIndex + 1).trim();
+        if (name.toLowerCase() === 'if-none-match' || name.toLowerCase() === 'if-modified-since') {
+          continue;
+        }
+        headers[name] = value;
       }
     }
     if (this._cookies) {
