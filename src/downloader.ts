@@ -121,9 +121,12 @@ export class Downloader {
     // Prepare headers, excluding ignored ones and adding cookies if present
     const headers = Object.fromEntries(
       this._headers
-        .map((h) => h.split(':').map((s) => s.trim()) as [string, string])
-        .filter((kv) => kv[0] && kv[1])
-        .filter((kv) => !IGNORED_HEADERS.includes(kv[0].toLowerCase()))
+        .map((h) => {
+          const idx = h.indexOf(':');
+          return idx > -1 ? [h.slice(0, idx).trim(), h.slice(idx + 1).trim()] : [h.trim(), ''];
+        })
+        .filter((kv) => kv.length === 2 && kv[0] && kv[1])
+        .filter((kv) => !IGNORED_HEADERS.includes(kv[0]!.toLowerCase()))
     );
 
     // Add cookies to headers if present
@@ -133,6 +136,8 @@ export class Downloader {
 
     // Get proxy configuration from environment variables
     const proxy = this.getProxyConfig();
+    // console.log("Using proxy:", proxy);
+    // console.log("Using headers:", headers);
 
     // Perform the HTTP GET request to download the file
     const response = await axios({
