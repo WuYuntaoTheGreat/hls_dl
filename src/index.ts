@@ -115,7 +115,8 @@ async function main() {
   // Download master m3u8 file
   const masterDownloader = new Downloader(m3u8Script)
     .setOutputDir(WORKING_DIR)
-    .setTargetFilename('master.m3u8');
+    .setTargetFilename('master.m3u8')
+    .setVerbose(options.verbose);
   await masterDownloader.download();
 
   // Parse master m3u8

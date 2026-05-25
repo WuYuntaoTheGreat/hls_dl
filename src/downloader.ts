@@ -13,6 +13,7 @@ export class Downloader {
   private outputDir: string = '.';
   private _targetFilename: string | undefined;
   private nameAndQuery: string | undefined;
+  private _verbose: boolean = false;
 
   constructor(private readonly _script: string) {
     // Parse headers.
@@ -33,6 +34,7 @@ export class Downloader {
 
   clone(): Downloader {
     return new Downloader(this._script)
+      .setVerbose(this._verbose)
       .setOutputDir(this.outputDir);
   }
 
@@ -48,6 +50,11 @@ export class Downloader {
 
   setUrlNameAndQuery(nameAndQuery: string): Downloader {
     this.nameAndQuery = nameAndQuery;
+    return this;
+  }
+
+  setVerbose(verbose: boolean): Downloader {
+    this._verbose = verbose;
     return this;
   }
 
@@ -137,8 +144,10 @@ export class Downloader {
 
     // Get proxy configuration from environment variables
     const proxy = this.getProxyConfig();
-    // console.log("Using proxy:", proxy);
-    // console.log("Using headers:", headers);
+    if (this._verbose) {
+      console.log("Using proxy:", proxy);
+      console.log("Using headers:", headers);
+    }
 
     // Perform the HTTP GET request to download the file
     const response = await axios({

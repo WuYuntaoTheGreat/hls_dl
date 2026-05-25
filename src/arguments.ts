@@ -5,6 +5,7 @@ export interface Options {
   scriptFile: string | undefined;
   bandwidth: "l" | "h";
   threads: number;
+  verbose: boolean;
 }
 
 export function printHelp(): void {
@@ -15,6 +16,7 @@ Options:
   -s, --script <file>     Use script file as URL source; if ommitted, URL will be read from clipboard
   -b, --bandwidth <l|h>   Select bandwidth: 'l' (low) or 'h' (high) (default: h)
   -t, --thread <count>    Number of download threads (default: 1)
+  -v, --verbose           Enable verbose logging
   -h, --help              Show this help message`);
 }
 
@@ -25,6 +27,7 @@ export function parseOptions(): Options {
       script:         { type: "string",  short: "s" },
       bandwidth:      { type: "string",  short: "b", default: "h" },
       thread:         { type: "string",  short: "t", default: "1" },
+      verbose:        { type: "boolean", short: "v", default: false },
       help:           { type: "boolean", short: "h", default: false },
     },
     strict: true,
@@ -51,5 +54,6 @@ export function parseOptions(): Options {
     scriptFile: values.script as string | undefined,
     bandwidth,
     threads,
+    verbose: values.verbose as boolean,
   };
 }
