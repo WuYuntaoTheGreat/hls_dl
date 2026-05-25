@@ -18,7 +18,7 @@ export class HLSParser {
 
     const comparator = { 'l': (a: number, b: number) => a - b, 'h': (a: number, b: number) => b - a }[preferBandwidth];
 
-    this._preferMedia = (this._manifest.playlists as any[]).reduce((prev: any | undefined, item: any) => {
+    this._preferMedia = (this._manifest.playlists || []).reduce((prev: any | undefined, item: any) => {
       const itemBw = item.attributes?.BANDWIDTH; 
       const prevBw = prev?.attributes?.BANDWIDTH;
       if (itemBw === undefined) {
@@ -31,16 +31,18 @@ export class HLSParser {
         return prev;
       } 
     }, undefined)
-
-    // console.log('Preferred media playlist:', this._preferMedia);
   }
 
   get playlists(): any[] {
     return this._manifest.playlists || [];
   }
 
+  get segments(): any[] {
+    return this._manifest.segments || [];
+  }
+
   get isMaster(): boolean {
-    return this.playlists?.[0].attributes?.BANDWIDTH !== undefined;
+    return this.playlists.length > 0;
   }
 
   get preferMedia(): any | undefined {
