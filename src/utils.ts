@@ -1,3 +1,5 @@
+import * as readline from "node:readline";
+
 declare global {
   interface Array<T> {
     uniq(): T[];
@@ -37,4 +39,22 @@ export function trimOutputFilename(targetFilename: string | undefined): string |
   return outputFilename;
 }
 
+export async function promptToDo(prompt: string, callback: () => void): Promise<void> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(prompt, (answer: string) => {
+      const normalized = answer.trim().toLowerCase();
+      rl.close();
+
+      if (normalized === "y" || normalized === "yes") {
+        callback();
+      }
+      resolve();
+    });
+  });
+}
 

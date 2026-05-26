@@ -7,10 +7,13 @@ import clipboard from "clipboardy";
 import { Downloader } from "./downloader.js";
 import { HLSParser } from "./hls_parser.js";
 import { HLSWriter } from "./hls_writer.js";
+import { convert } from "./converter.js";
+import { promptToDo } from "./utils.js";
 
 const WORKING_DIR = ".hls_dl";
 const CONTENT_DIR = path.join(WORKING_DIR, 'contents');
 const SCRIPT_PATH = path.join(WORKING_DIR, 'download.sh');
+const CONVERT_OUTPUT= 'out.mp4';
 
 async function processMedia(downloader: Downloader, threads: number): Promise<void> {
   const mediaParser = HLSParser.fromPath(downloader.outputFilePath);
@@ -69,7 +72,7 @@ async function processMaster(downloader: Downloader, options: Options): Promise<
       await processMedia(audioDownloader, options.threads);
     }
     console.log('  Rewriting master m3u8...');
-    await new HLSWriter(masterParser, path.join(CONTENT_DIR, 'index.m3u8')).write();
+    new HLSWriter(masterParser, path.join(CONTENT_DIR, 'index.m3u8')).write();
   } else {
     // Process media playlist
     console.log('Processing media playlist...');
@@ -121,6 +124,30 @@ async function main() {
 
   // Parse master m3u8
   await processMaster(masterDownloader, options);
+
+  // Convert to mp4
+  const convertInput = [
+    path.join(CONTENT_DIR, 'index.m3u8'),
+    path.join(CONTENT_DIR, 'video.m3u8'),
+  ].find((p) => existsSync(p));
+
+  console.log('before convert');
+  if (convertInput) {
+    await promptToDo("Do you want to convert the downloaded m3u8 file to mp4 format using ffmpeg? (y/n) ", () => {
+      convert(convertInput, CONVERT_OUTPUT);
+    });
+  } else {
+    console.warn('m3u8 not found, skipping conversion to mp4');
+    console.log('m3u8 not found, skipping conversion to mp4');
+  }
+  console.log('after convert');
+
+  // Clear working directory
+  await promptToDo("Do you want to clear the downloaded files in working directory? (y/n) ", () => {
+    rmSync(WORKING_DIR, { recursive: true, force: true });
+    console.log('Working directory cleared');
+  });
+  console.log('Done');
 }
 
 main().catch((err) => {
