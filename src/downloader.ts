@@ -65,6 +65,10 @@ export class Downloader {
   get cookies(): string | undefined { return this._cookies; }
 
   get downloadUrl(): string {
+    if (['https://', 'http://'].find((s) => this.nameAndQuery?.startsWith(s))) {
+      return this.nameAndQuery!;
+    }
+
     const urlHostAndPath = this._url.match(/^.*\//)?.[0];
     if (!urlHostAndPath) {
       throw new Error('Cannot determine URL host and path from script');
