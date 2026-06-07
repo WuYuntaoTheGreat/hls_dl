@@ -1,3 +1,4 @@
+import { NOMEM } from "node:dns";
 import * as readline from "node:readline";
 
 declare global {
@@ -39,22 +40,30 @@ export function trimOutputFilename(targetFilename: string | undefined): string |
   return outputFilename;
 }
 
-export async function promptToDo(prompt: string, callback: () => void): Promise<void> {
+export async function promptToDo(prompt: string, defVal: boolean): Promise<boolean> {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
 
-  return new Promise((resolve) => {
-    rl.question(prompt, (answer: string) => {
-      const normalized = answer.trim().toLowerCase();
-      rl.close();
-
-      if (normalized === "y" || normalized === "yes") {
-        callback();
-      }
-      resolve();
+  let asw: string | undefined;
+  while (asw === undefined){
+    asw = await new Promise<string | undefined>((resolve) => {
+      rl.question(prompt + (defVal ? '(Y/n)' : '(y/N)'), (answer: string) => {
+        rl.close();
+        resolve(answer.trim().toLowerCase());
+      });
     });
-  });
+
+    if (asw === 'y' || asw === 'yes') {
+      return true;
+    } else if (asw === 'n' || asw === 'no') {
+      return false;
+    } else if (asw === '') {
+      return defVal;
+    }
+  }
+
+  throw new Error('promptTodo interrupted!');
 }
 

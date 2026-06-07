@@ -133,20 +133,20 @@ async function main() {
 
   console.log('before convert');
   if (convertInput) {
-    await promptToDo("Do you want to convert the downloaded m3u8 file to mp4 format using ffmpeg? (y/n) ", () => {
+    if (await promptToDo("Do you want to convert the downloaded m3u8 file to mp4 format using ffmpeg? ", true)) {
       convert(convertInput, CONVERT_OUTPUT);
-    });
+    }
   } else {
     console.warn('m3u8 not found, skipping conversion to mp4');
-    console.log('m3u8 not found, skipping conversion to mp4');
   }
   console.log('after convert');
 
   // Clear working directory
-  await promptToDo("Do you want to clear the downloaded files in working directory? (y/n) ", () => {
+  if (await promptToDo("Do you want to clear the downloaded files in working directory? ", true)) {
     rmSync(WORKING_DIR, { recursive: true, force: true });
     console.log('Working directory cleared');
-  });
+  }
+
   console.log('Done');
 }
 
