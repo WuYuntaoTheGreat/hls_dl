@@ -65,19 +65,20 @@ export class Downloader {
   get cookies(): string | undefined { return this._cookies; }
 
   get downloadUrl(): string {
-    if (['https://', 'http://'].find((s) => this.nameAndQuery?.startsWith(s))) {
+    if (this.nameAndQuery === undefined) {
+      return this._url;
+    }
+
+    if (['https://', 'http://'].find((s) => this.nameAndQuery!.startsWith(s))) {
       return this.nameAndQuery!;
     }
 
-    const urlHostAndPath = this._url.match(/^.*\//)?.[0];
-    if (!urlHostAndPath) {
-      throw new Error('Cannot determine URL host and path from script');
+    const url = new URL(this._url);
+    if (this.nameAndQuery!.startsWith('/')) {
+      return url.origin + this.nameAndQuery;
     }
-    if (this.nameAndQuery !== undefined) {
-      return urlHostAndPath + this.nameAndQuery;
-    } else {
-      return this._url;
-    }
+
+    return new URL(this.nameAndQuery!, url).href;
   }
 
   get outputFileName(): string {
