@@ -25,7 +25,7 @@ export class Downloader {
     this._cookies = cookieMatch ? cookieMatch[1] : undefined;
 
     // Parse URL.
-    const urlMatch = this._script.match(/curl \$?'([^']+)'/);
+    const urlMatch = this._script.match(/curl\s+(?:--url\s+)?\$?'([^']+)'/);
     if (!urlMatch || urlMatch.length < 2) {
       throw new Error('Invalid cURL script: URL not found');
     }
