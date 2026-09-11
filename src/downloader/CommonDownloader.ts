@@ -1,21 +1,26 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import axios, { type AxiosProxyConfig } from 'axios';
 import { existsSync } from 'fs';
-import { trimOutputFilename } from './utils.js';
+import { trimOutputFilename } from '../utils.js';
 
 const IGNORED_HEADERS = ['if-none-match', 'if-modified-since'];
 
-export class Downloader {
-  private readonly _url: string;
-  private readonly _headers: string[];
-  private readonly _cookies: string | undefined;
-  private outputDir: string = '.';
-  private _targetFilename: string | undefined;
-  private nameAndQuery: string | undefined;
-  private _verbose: boolean = false;
+export type DownloaderParams = {
+  url: string;
+  outputPath: string;
+  headers: Record<string, string>;
+};
 
-  constructor(private readonly _script: string) {
+export abstract class Downloader {
+  protected readonly _url: string;
+  protected readonly _headers: string[];
+  protected readonly _cookies: string | undefined;
+  protected outputDir: string = '.';
+  protected _targetFilename: string | undefined;
+  protected nameAndQuery: string | undefined;
+  protected _verbose: boolean = false;
+
+  constructor(protected readonly _script: string) {
     // Parse headers.
     const headerMatches = this._script.matchAll(/-H '([^']+)'/g);
     this._headers = [...headerMatches].map((m) => m[1]).filter((h) => h !== undefined);
@@ -32,10 +37,13 @@ export class Downloader {
     this._url = urlMatch[1]!;
   }
 
-  clone(): Downloader {
-    return new Downloader(this._script)
-      .setVerbose(this._verbose)
-      .setOutputDir(this.outputDir);
+  abstract clone(): Downloader;
+  protected copyPropertiesFrom(src: Downloader): Downloader {
+    this.outputDir        = src.outputDir;
+    this._targetFilename  = src._targetFilename;
+    this.nameAndQuery     = src.nameAndQuery;
+    this._verbose         = src._verbose;
+    return this;
   }
 
   setOutputDir(dir: string): Downloader {
@@ -94,28 +102,6 @@ export class Downloader {
     return path.join(this.outputDir, this.outputFileName);
   }
 
-  getProxyConfig(): AxiosProxyConfig | false {
-    const proxyUrl = this.downloadUrl.startsWith('https:')
-      ? (process.env.HTTPS_PROXY || process.env.https_proxy)
-      : (process.env.HTTP_PROXY || process.env.http_proxy);
-
-    if (!proxyUrl) {
-      return false;
-    }
-
-    const proxyObj = new URL(proxyUrl);
-    const auth = proxyObj.username
-        ? { username: proxyObj.username, password: proxyObj.password }
-        : undefined;
-
-    return {
-      protocol: proxyObj.protocol,
-      host: proxyObj.hostname,
-      port: parseInt(proxyObj.port, 10),
-      ...(auth ? {auth} : {}),
-    };
-  }
-
   async download(): Promise<void> {
     const url = this.downloadUrl;
     const outputPath = this.outputFilePath;
@@ -147,23 +133,20 @@ export class Downloader {
       headers['Cookie'] = this._cookies;
     }
 
-    // Get proxy configuration from environment variables
-    const proxy = this.getProxyConfig();
-    if (this._verbose) {
-      console.log("Using proxy:", proxy);
-      console.log("Using headers:", headers);
-    }
+    // // Perform the HTTP GET request to download the file
+    // const response = await axios({
+    //   method: 'get',
+    //   url,
+    //   headers,
+    //   proxy,
+    //   responseType: 'arraybuffer',
+    // });
 
-    // Perform the HTTP GET request to download the file
-    const response = await axios({
-      method: 'get',
-      url,
-      headers,
-      proxy,
-      responseType: 'arraybuffer',
-    });
-
-    // Save the downloaded content to the output file
-    fs.writeFileSync(outputPath, Buffer.from(response.data));
+    // // Save the downloaded content to the output file
+    // fs.writeFileSync(outputPath, Buffer.from(response.data));
+    await this.doDownload({ url, outputPath, headers });
   }
+
+  abstract doDownload(params: DownloaderParams): Promise<void>;
 }
+

@@ -4,11 +4,13 @@ import path from "node:path";
 import { parseOptions, type Options } from "./arguments.js";
 import { readFile } from "node:fs/promises";
 import clipboard from "clipboardy";
-import { Downloader } from "./downloader.js";
+import { Downloader } from "./downloader/CommonDownloader.js";
 import { HLSParser } from "./hls_parser.js";
 import { HLSWriter } from "./hls_writer.js";
 import { convert } from "./converter.js";
 import { promptToDo } from "./utils.js";
+import AxiosDownloader from "./downloader/AxiosDownloader.js";
+import CurlDownloader from "./downloader/CurlDownloader.js";
 
 const WORKING_DIR = ".hls_dl";
 const CONTENT_DIR = path.join(WORKING_DIR, 'contents');
@@ -116,7 +118,10 @@ async function main() {
   writeFileSync(SCRIPT_PATH, m3u8Script, { encoding: "utf-8" });
 
   // Download master m3u8 file
-  const masterDownloader = new Downloader(m3u8Script)
+  const masterDownloader = options.curl
+    ? new CurlDownloader(m3u8Script)
+    : new AxiosDownloader(m3u8Script);
+  masterDownloader
     .setOutputDir(WORKING_DIR)
     .setTargetFilename('master.m3u8')
     .setVerbose(options.verbose);

@@ -2,6 +2,7 @@ import { parseArgs } from "node:util";
 
 export interface Options {
   clear: boolean;
+  curl: boolean;
   scriptFile: string | undefined;
   bandwidth: "l" | "h";
   threads: number;
@@ -13,6 +14,7 @@ export function printHelp(): void {
 
 Options:
   -c, --clear             Clear previous download job
+  -C, --curl              Use cURL for downloading (default: axios)
   -s, --script <file>     Use script file as URL source; if ommitted, URL will be read from clipboard
   -b, --bandwidth <l|h>   Select bandwidth: 'l' (low) or 'h' (high) (default: h)
   -t, --thread <count>    Number of download threads (default: 1)
@@ -24,6 +26,7 @@ export function parseOptions(): Options {
   const { values } = parseArgs({
     options: {
       clear:          { type: "boolean", short: "c", default: false },
+      curl:           { type: "boolean", short: "C", default: false },
       script:         { type: "string",  short: "s" },
       bandwidth:      { type: "string",  short: "b", default: "h" },
       thread:         { type: "string",  short: "t", default: "1" },
@@ -51,6 +54,7 @@ export function parseOptions(): Options {
 
   return {
     clear: values.clear as boolean,
+    curl: values.curl as boolean,
     scriptFile: values.script as string | undefined,
     bandwidth,
     threads,
