@@ -13,18 +13,19 @@ function rawAttrArray(v: any, toUpper = false): string {
   }
 }
 
-function rawAttr(v: any, toUpper = false): string {
+function rawAttr(attrs: any, toUpper = false): string {
   const ret: string[] = [];
-  Object.entries(v as any).forEach(([k, v]) => {
+  Object.entries(attrs as any).forEach(([k, v]) => {
     if (v === undefined || v === null) {
       return;
     }
-    if (typeof v === 'object'){
-      if (k.toLowerCase() === 'resolution' && (v as any).width !== undefined && (v as any).height !== undefined) {
-        v = `${(v as any).width}x${(v as any).height}`;
-      } else if (k.toLowerCase() === 'byterange' && (v as any).length !== undefined && (v as any).offset !== undefined) {
-        v = `${(v as any).length}@${(v as any).offset}`;
-      }
+
+    if (k.toLowerCase() === 'resolution' && (v as any).width !== undefined && (v as any).height !== undefined) {
+      v = `${(v as any).width}x${(v as any).height}`;
+    } else if (k.toLowerCase() === 'byterange' && (v as any).length !== undefined && (v as any).offset !== undefined) {
+      v = `${(v as any).length}@${(v as any).offset}`;
+    } else if (k.toLowerCase() === 'uri' && typeof v === 'string') {
+      v = trimOutputFilename(v);
     } else if (typeof v === 'boolean') {
       v = v ? 'YES' : 'NO';
     }
